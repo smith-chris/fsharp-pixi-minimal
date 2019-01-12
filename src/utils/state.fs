@@ -7,7 +7,7 @@ type Point = {
 
 type FieldFunc<'a> = {
   data: 'a
-  time: int
+  time: float
 }
 
 type Field<'a> = {

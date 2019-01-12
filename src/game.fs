@@ -18,23 +18,34 @@ let initialState = {
         x = 1.
         y = 1.
       }
-      time = 0
+      time = 0.
     }
   }
 }
 
+let frameTime = 1000.0 / 60.0
+
+let getComputedPosition (state: InitialState) (time: float) : Point =
+  let {value=v; func=f} = state.position
+  let timePassed = time - f.time
+
+  if timePassed < 0.0 then
+    printf "Warning: Time doesnt go backwards! (target: %f is smaller than start: %f)" time f.time
+    state.position.value
+
+  else 
+    let strength = timePassed / frameTime
+    let x = applyValue v.x f.data.x strength
+    let y = applyValue v.y f.data.y strength
+    {x = x; y = y}
+
 let bunny = PIXI.Sprite.fromImage("bunny.png")
 bunny.anchor.set(0.5)
 
-let frameTime = 1000.0 / 60.0
-
-let mutable timePassed = 0.
+let mutable totalTimePassed = 0.
 
 let tick (delta: float) =
-  timePassed <- timePassed + delta
-  let strength = timePassed / frameTime
-  let {value=v; func=f} = initialState.position
-  let x = applyValue v.x f.data.x strength
-  let y = applyValue v.y f.data.y strength
-  bunny.x <- x
-  bunny.y <- y
+  totalTimePassed <- totalTimePassed + delta
+  let state = getComputedPosition initialState totalTimePassed
+  bunny.x <- state.x
+  bunny.y <- state.y
