@@ -1,43 +1,34 @@
-module App
+module Pixi
 
-(**
- The famous Increment/Decrement ported from Elm.
- You can find more info about Emish architecture and samples at https://elmish.github.io/
-*)
+open System
+open Fable.Core
+open Fable.Core.JsInterop
+open Fable.Import
+open Fable.Import.Pixi
+open Fable.Import.Browser
+open Fable.Import.JS
 
-open Elmish
-open Elmish.React
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
+let options = jsOptions<PIXI.ApplicationOptions> (fun o ->
+  o.backgroundColor <- Some 0x000000
+)
+let app = PIXI.Application(400., 400., options)
+Browser.document.body.appendChild(app.view) |> ignore
 
-// MODEL
+// create a new Sprite from an image path
+let bunny = PIXI.Sprite.fromImage("bunny.png")
 
-type Model = int
+// center the sprite's anchor point
+bunny.anchor.set(0.5)
+bunny.x <- app.screen.width * 0.5
+bunny.y <- app.screen.height * 0.5
 
-type Msg =
-| Increment
-| Decrement
+app.stage.addChild(bunny) |> ignore
 
-let init() : Model = 0
+let tick delta =
+  // just for fun, let's rotate mr rabbit a little
+  // delta is 1 if running at 100% performance
+  // creates frame-independent tranformation
+  bunny.rotation <- bunny.rotation + 0.1 * delta
 
-// UPDATE
-
-let update (msg:Msg) (model:Model) =
-    match msg with
-    | Increment -> model + 1
-    | Decrement -> model - 1
-
-// VIEW (rendered with React)
-
-let view (model:Model) dispatch =
-
-  div []
-      [ button [ OnClick (fun _ -> dispatch Increment) ] [ str "+" ]
-        div [] [ str (string model) ]
-        button [ OnClick (fun _ -> dispatch Decrement) ] [ str "-" ] ]
-
-// App
-Program.mkSimple init update view
-|> Program.withReact "elmish-app"
-|> Program.withConsoleTrace
-|> Program.run
+// Listen for animate update
+app.ticker.add(tick) |> ignore
