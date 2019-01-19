@@ -3,6 +3,16 @@ module Game
 open Fable.Import.Pixi
 open State
 
+type Size = {
+  width: float
+  height: float
+}
+
+let viewport = {
+  width = 128.
+  height = 128.
+}
+
 type InitialState = {
   position: Field<Point>
 }
@@ -15,15 +25,14 @@ let initialState = {
     }
     func = {
       data = {
-        x = 1.
-        y = 1.
+        x = 20.
+        y = 3.
       }
       time = 0.
     }
   }
 }
 
-let frameTime = 1000.0 / 60.0
 
 let getComputedPosition (state: InitialState) (time: float) : Point =
   let {value=v; func=f} = state.position
@@ -34,18 +43,23 @@ let getComputedPosition (state: InitialState) (time: float) : Point =
     state.position.value
 
   else 
-    let strength = timePassed / frameTime
-    let x = applyValue v.x f.data.x strength
-    let y = applyValue v.y f.data.y strength
-    {x = x; y = y}
+    applyPointValue v f.data timePassed
 
 let bunny = PIXI.Sprite.fromImage("bunny.png")
 bunny.anchor.set(0.5)
 
 let mutable totalTimePassed = 0.
 
-let tick (delta: float) =
+let mutable currentState = initialState
+
+let tick (delta: float) : unit =
   totalTimePassed <- totalTimePassed + delta
-  let state = getComputedPosition initialState totalTimePassed
+  let state = getComputedPosition currentState totalTimePassed
   bunny.x <- state.x
   bunny.y <- state.y
+
+  if bunny.x >= viewport.width then
+    let newData = {currentState.position.func.data with x = (- abs currentState.position.func.data.x)}
+    let newPosition = getNewPointField currentState.position newData totalTimePassed
+    currentState <- {currentState with position = newPosition}
+    printf "Bounce right"
