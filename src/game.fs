@@ -50,6 +50,9 @@ bunny.anchor.set(0.5)
 
 let mutable totalTimePassed = 0.
 
+let newPosition = getComputedPosition initialState 20.0
+printf "x: %f, y: %f" newPosition.x newPosition.y
+
 let mutable currentState = initialState
 
 let tick (delta: float) : unit =
