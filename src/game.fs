@@ -20,13 +20,13 @@ type InitialState = {
 let initialState = {
   position = {
     value = {
-      x = 0.
+      x = 50.
       y = 0.
     }
     func = {
       data = {
-        x = 20.
-        y = 3.
+        x = -20.
+        y = 20.
       }
       time = 0.
     }
@@ -51,9 +51,20 @@ bunny.anchor.set(0.5)
 let mutable totalTimePassed = 0.
 
 let newPosition = getComputedPosition initialState 20.0
-printf "x: %f, y: %f" newPosition.x newPosition.y
+
+let log point =
+  // printf "x: %f, y: %f" point.x point.y
+  printf "%O" point
+
+log newPosition
 
 let mutable currentState = initialState
+
+let modifyPositionData state getNewData =
+  let newData = getNewData state.position.func.data
+  let newPosition = getNewPointField state.position newData totalTimePassed
+  {state with position = newPosition}
+
 
 let tick (delta: float) : unit =
   totalTimePassed <- totalTimePassed + delta
@@ -62,7 +73,15 @@ let tick (delta: float) : unit =
   bunny.y <- state.y
 
   if bunny.x >= viewport.width then
-    let newData = {currentState.position.func.data with x = (- abs currentState.position.func.data.x)}
-    let newPosition = getNewPointField currentState.position newData totalTimePassed
-    currentState <- {currentState with position = newPosition}
     printf "Bounce right"
+    currentState <- modifyPositionData currentState (fun data -> {data with x = -abs data.x})
+  if bunny.x <= 0. then
+    printf "Bounce left"
+    currentState <- modifyPositionData currentState (fun data -> {data with x = abs data.x})
+  if bunny.y <= 0. then
+    printf "Bounce top"
+    currentState <- modifyPositionData currentState (fun data -> {data with y = abs data.y})
+  if bunny.y >= viewport.height then
+    printf "Bounce bottom"
+    currentState <- modifyPositionData currentState (fun data -> {data with y = -abs data.y})
+    

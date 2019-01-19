@@ -26,7 +26,7 @@ let applyPointValue (v: Point) (diff: Point) (time: float) : Point =
   {x = x; y = y}
 
 let getNewPointField (field: Field<Point>) (data: Point) (time: float) : Field<Point> =
-  {field with func = {data = data; time = time}; value = (applyPointValue field.value field.func.data time)}
+  {field with func = {data = data; time = time}; value = (applyPointValue field.value field.func.data (time - field.func.time))}
 
 
 // export const applyValue = <T>(value: T, diff: T, strength: number): T => {
