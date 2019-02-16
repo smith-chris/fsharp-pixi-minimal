@@ -3,85 +3,92 @@ module Game
 open Fable.Import.Pixi
 open State
 
-type Size = {
-  width: float
-  height: float
-}
+let log point = printf "%O" point
 
-let viewport = {
-  width = 128.
-  height = 128.
-}
+type Time = float
 
-type InitialState = {
-  position: Field<Point>
-}
+type Size =
+    { width : float
+      height : float }
 
-let initialState = {
-  position = {
-    value = {
-      x = 50.
-      y = 0.
-    }
-    func = {
-      data = {
-        x = -20.
-        y = 20.
-      }
-      time = 0.
-    }
-  }
-}
+type Direction =
+    | N
+    | E
+    | W
+    | S
 
+type Action =
+    | Bounce of Direction
+    | Nothing
 
-let getComputedPosition (state: InitialState) (time: float) : Point =
-  let {value=v; func=f} = state.position
-  let timePassed = time - f.time
+let viewport =
+    { width = 128.
+      height = 128. }
 
-  if timePassed < 0.0 then
-    printf "Warning: Time doesnt go backwards! (target: %f is smaller than start: %f)" time f.time
-    state.position.value
+let bounceScreen (position : Point) =
+    match position with
+    | { x = x } when x >= viewport.width -> Action.Bounce Direction.E
+    | { x = x } when x <= 0. -> Action.Bounce Direction.W
+    | { y = y } when y >= viewport.height -> Action.Bounce Direction.S
+    | { y = y } when y <= 0. -> Action.Bounce Direction.N
+    | _ -> Action.Nothing
 
-  else 
-    applyPointValue v f.data timePassed
+type State =
+    { position : Field<Point> }
 
-let bunny = PIXI.Sprite.fromImage("bunny.png")
-bunny.anchor.set(0.5)
+let initialState =
+    { position =
+          { value =
+                { x = 50.
+                  y = 0. }
+            func =
+                { data =
+                      { x = -20.
+                        y = 20. }
+                  time = 0. } } }
+
+let getComputedPosition (state : State) (time : float) : Point =
+    let { value = v; func = f } = state.position
+    let timePassed = time - f.time
+    if timePassed < 0.0 then
+        printf
+            "Warning: Time doesnt go backwards! (target: %f is smaller than start: %f)"
+            time f.time
+        state.position.value
+    else applyPointValue v f.data timePassed
+
+let bunny = PIXI.Sprite.fromImage ("bunny.png")
+
+bunny.anchor.set (0.5)
 
 let mutable totalTimePassed = 0.
-
 let newPosition = getComputedPosition initialState 20.0
-
-let log point =
-  // printf "x: %f, y: %f" point.x point.y
-  printf "%O" point
 
 log newPosition
 
 let mutable currentState = initialState
 
-let modifyPositionData state getNewData =
-  let newData = getNewData state.position.func.data
-  let newPosition = getNewPointField state.position newData totalTimePassed
-  {state with position = newPosition}
+let changePosition (state: State) (time: Time) (getNewData: Point -> Point) =
+    let newData = getNewData state.position.func.data
+    let newPosition = getNewPointField state.position newData totalTimePassed
+    { state with position = newPosition }
 
+let setPositionData (state : State) (time: Time) (direction : Direction): State =
+    match direction with
+    | Direction.E -> changePosition state time (fun data -> { data with x = -abs data.x })
+    | Direction.W -> changePosition state time (fun data -> { data with x = abs data.x })
+    | Direction.N -> changePosition state time (fun data -> { data with y = abs data.y })
+    | Direction.S -> changePosition state time (fun data -> { data with y = -abs data.y })
 
-let tick (delta: float) : unit =
-  totalTimePassed <- totalTimePassed + delta
-  let state = getComputedPosition currentState totalTimePassed
-  bunny.x <- state.x
-  bunny.y <- state.y
+let update (state : State) (action : Action) (time : Time) =
+    match action with
+    | Action.Bounce direction -> setPositionData state time direction
+    | _ -> state
 
-  if bunny.x >= viewport.width then
-    printf "Bounce right"
-    currentState <- modifyPositionData currentState (fun data -> {data with x = -abs data.x})
-  if bunny.x <= 0. then
-    printf "Bounce left"
-    currentState <- modifyPositionData currentState (fun data -> {data with x = abs data.x})
-  if bunny.y <= 0. then
-    printf "Bounce top"
-    currentState <- modifyPositionData currentState (fun data -> {data with y = abs data.y})
-  if bunny.y >= viewport.height then
-    printf "Bounce bottom"
-    currentState <- modifyPositionData currentState (fun data -> {data with y = -abs data.y})
-    
+let tick (delta : float) : unit =
+    totalTimePassed <- totalTimePassed + delta
+    let position = getComputedPosition currentState totalTimePassed
+    bunny.x <- position.x
+    bunny.y <- position.y
+    let action = bounceScreen position
+    currentState <- update currentState action totalTimePassed
